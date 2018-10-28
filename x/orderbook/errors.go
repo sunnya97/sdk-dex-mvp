@@ -26,3 +26,18 @@ func ErrInvalidPriceRange(codespace sdk.CodespaceType, priceRatio sdk.Dec) sdk.E
 func ErrInvalidPriceFormat(codespace sdk.CodespaceType, price Price) sdk.Error {
 	return sdk.NewError(codespace, CodeInvalidPriceFormat, fmt.Sprintf("Invalid Price %v", price))
 }
+
+// Error for when the Price units aren't in the right for an order
+func ErrOrderNotFound(codespace sdk.CodespaceType, orderID int64) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidPriceFormat, fmt.Sprintf("Could not find an order with OrderID %d", orderID))
+}
+
+// Error for when the Price units aren't in the right for an order
+func ErrInvalidOrderID(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidPriceFormat, fmt.Sprintf("Invalid OrderID"))
+}
+
+// Error for when the Price units aren't in the right for an order
+func ErrInvalidDenomPair(codespace sdk.CodespaceType) sdk.Error {
+	return sdk.NewError(codespace, CodeInvalidPriceFormat, fmt.Sprintf("Invalid DenomPair"))
+}

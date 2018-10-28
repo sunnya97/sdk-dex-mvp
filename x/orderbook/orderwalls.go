@@ -13,7 +13,7 @@ func OrderwallPrefix(pair DenomPair) []byte {
 
 // Returns the key for getting an orderID in an orderWall
 func OrderwallOrderKey(pair DenomPair, price Price, orderID int64) []byte {
-	return AppendWithSeperator(AppendWithSeperator(OrderwallPrefix(pair), SortableSDKDecBytes(price.ratio)), Int64ToSortableBytes(orderID))
+	return AppendWithSeperator(AppendWithSeperator(OrderwallPrefix(pair), SortableSDKDecBytes(price.Ratio)), Int64ToSortableBytes(orderID))
 }
 
 // Returns an iterator for all the orders in an orderwall by price
@@ -58,11 +58,11 @@ func (k Keeper) PopOrderwallOrder(ctx sdk.Context, pair DenomPair) (order Order,
 // Insert an orderID into the appropriate timeslice in the expiration queue
 func (k Keeper) InsertOrderwallOrder(ctx sdk.Context, order Order) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(OrderwallOrderKey(order.Pair(), order.price, order.orderID), k.cdc.MustMarshalBinary(order))
+	store.Set(OrderwallOrderKey(order.Pair(), order.Price, order.OrderID), k.cdc.MustMarshalBinary(order.OrderID))
 }
 
 // Insert an orderID into the appropriate timeslice in the expiration queue
 func (k Keeper) DeleteOrderwallOrder(ctx sdk.Context, order Order) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(OrderwallOrderKey(order.Pair(), order.price, order.orderID), nil)
+	store.Set(OrderwallOrderKey(order.Pair(), order.Price, order.OrderID), nil)
 }

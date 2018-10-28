@@ -25,14 +25,14 @@ func NewHandler(keeper Keeper) sdk.Handler {
 // Handle MsgMakeOrder
 func handleMsgMakeOrder(ctx sdk.Context, keeper Keeper, msg MsgMakeOrder) sdk.Result {
 	order := Order{
-		orderID:        keeper.GetNextOrderID(ctx),
-		owner:          msg.MakerAddr,
-		sellCoins:      msg.SellCoins,
-		price:          msg.Price,
-		expirationTime: msg.ExpirationTime,
+		OrderID:        keeper.GetNextOrderID(ctx),
+		Owner:          msg.OwnerAddr,
+		SellCoins:      msg.SellCoins,
+		Price:          msg.Price,
+		ExpirationTime: msg.ExpirationTime,
 	}
 
-	keeper.coinKeeper.SubtractCoins(ctx, order.owner, sdk.Coins{order.sellCoins})
+	keeper.coinKeeper.SubtractCoins(ctx, order.Owner, sdk.Coins{order.SellCoins})
 	keeper.AddNewOrder(ctx, order)
 
 	return sdk.Result{}
@@ -41,7 +41,7 @@ func handleMsgMakeOrder(ctx sdk.Context, keeper Keeper, msg MsgMakeOrder) sdk.Re
 // Handle MsgRemoveOrder
 func handleMsgRemoveOrder(ctx sdk.Context, keeper Keeper, msg MsgRemoveOrder) sdk.Result {
 	removedOrder := keeper.RemoveOrder(ctx, msg.OrderID)
-	keeper.coinKeeper.AddCoins(ctx, removedOrder.owner, sdk.Coins{removedOrder.sellCoins})
+	keeper.coinKeeper.AddCoins(ctx, removedOrder.Owner, sdk.Coins{removedOrder.SellCoins})
 
 	return sdk.Result{}
 }

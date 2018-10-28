@@ -21,18 +21,19 @@ type Keeper struct {
 var lastOrderIDKey = []byte("lastOrderID")
 var ordersPrefix = []byte("orders")
 
-func NewKeeper(coinKeeper bank.Keeper, storeKey sdk.StoreKey, cdc *codec.Codec) Keeper {
+func NewKeeper(coinKeeper bank.Keeper, storeKey sdk.StoreKey, cdc *codec.Codec, codespace sdk.CodespaceType) Keeper {
 	return Keeper{
 		coinKeeper: coinKeeper,
 		storeKey:   storeKey,
 		cdc:        cdc,
+		codespace:  codespace,
 	}
 }
 
 // AddNewOrder - Adds a new order into the proper orderbook
 func (k Keeper) AddNewOrder(ctx sdk.Context, order Order) sdk.Error {
-	if !ValidSortableDec(order.price.ratio) {
-		return ErrInvalidPriceRange(k.codespace, order.price.ratio)
+	if !ValidSortableDec(order.Price.Ratio) {
+		return ErrInvalidPriceRange(k.codespace, order.Price.Ratio)
 	}
 
 	// First run order against opposing order wall
@@ -49,7 +50,7 @@ func (k Keeper) AddNewOrder(ctx sdk.Context, order Order) sdk.Error {
 // Updates the amount of SellCoins left in an order
 func (k Keeper) DecreaseOrderBidAmount(ctx sdk.Context, orderID int64, newAmount sdk.Coin) {
 	order, found := k.GetOrder(ctx, orderID)
-	if !found || !order.sellCoins.SameDenomAs(newAmount) || !newAmount.IsNotNegative() {
+	if !found || !order.SellCoins.SameDenomAs(newAmount) || !newAmount.IsNotNegative() {
 		return
 	}
 
@@ -58,7 +59,7 @@ func (k Keeper) DecreaseOrderBidAmount(ctx sdk.Context, orderID int64, newAmount
 		return
 	}
 
-	order.sellCoins = newAmount
+	order.SellCoins = newAmount
 	k.SetOrder(ctx, order)
 }
 
@@ -80,57 +81,57 @@ func (k Keeper) ExecuteOrderAgainstOrderWall(ctx sdk.Context, order Order) (rema
 	opposingPair := order.Pair().ReversePair()
 
 	// while the order hasn't been fully consumed
-	for order.sellCoins.IsPositive() {
+	for order.SellCoins.IsPositive() {
 
 		// get the first order in the opposing wall
 		// if there are no more orders in the opposing wall, end by placing the remaining incoming order in its own wall
 		peekWallOrder, found := k.PeekOrderwallOrder(ctx, opposingPair)
 		if !found {
-			k.DecreaseOrderBidAmount(ctx, order.orderID, order.sellCoins)
+			k.DecreaseOrderBidAmount(ctx, order.OrderID, order.SellCoins)
 			return order, false
 		}
 
 		// get the asking price of peekedOrder
-		askPrice := peekWallOrder.price.Reciprocal()
+		askPrice := peekWallOrder.Price.Reciprocal()
 
 		// If the asking price is greater than the incoming order is willing to pay, break out of the loop and end
-		if order.price.LT(askPrice) {
+		if order.Price.LT(askPrice) {
 			break
 		}
 
 		// get the amount the taker has to pay to execute the entire peekedOrder *at the maker's price*
-		bidAtAskingPrice, _ := MulCoinsPrice(order.sellCoins, askPrice)
+		bidAtAskingPrice, _ := MulCoinsPrice(order.SellCoins, askPrice)
 
 		// if the peeked order can't fulfill my entire order, execute as much as possible (the entire peeked order)
 		// and remove the peeked order
-		if bidAtAskingPrice.IsGTE(peekWallOrder.sellCoins) {
+		if bidAtAskingPrice.IsGTE(peekWallOrder.SellCoins) {
 			// the amount that the taker has to pay to complete the peekedOrder
-			executeAmount, _ := MulCoinsPrice(peekWallOrder.sellCoins, askPrice.Reciprocal())
+			executeAmount, _ := MulCoinsPrice(peekWallOrder.SellCoins, askPrice.Reciprocal())
 
 			// Remove executeAmount from the incoming order's sellCoins and send them to the peekOrder's maker
-			k.coinKeeper.AddCoins(ctx, peekWallOrder.owner, sdk.Coins{executeAmount})
-			order.sellCoins = order.sellCoins.Minus(executeAmount)
+			k.coinKeeper.AddCoins(ctx, peekWallOrder.Owner, sdk.Coins{executeAmount})
+			order.SellCoins = order.SellCoins.Minus(executeAmount)
 
 			// Send the full sellCoins of the peekedOrder to the incoming order's owner (the taker)
 			// and remove the peeked order from state
-			k.coinKeeper.AddCoins(ctx, order.owner, sdk.Coins{peekWallOrder.sellCoins})
-			k.RemoveOrder(ctx, peekWallOrder.orderID)
+			k.coinKeeper.AddCoins(ctx, order.Owner, sdk.Coins{peekWallOrder.SellCoins})
+			k.RemoveOrder(ctx, peekWallOrder.OrderID)
 		} else {
 			// scenario that peekedOrder is larger than the incoming taker order
 
 			// amount that the peekedOrder trades to fully execute the incoming order
-			executeAmount, _ := MulCoinsPrice(order.sellCoins, askPrice)
+			executeAmount, _ := MulCoinsPrice(order.SellCoins, askPrice)
 
 			// Remove executeAmount from the peekedOrder's sellCoins and send them to the taker (the incoming order's owner)
-			k.coinKeeper.AddCoins(ctx, order.owner, sdk.Coins{executeAmount})
-			peekWallOrder.sellCoins = peekWallOrder.sellCoins.Minus(executeAmount)
+			k.coinKeeper.AddCoins(ctx, order.Owner, sdk.Coins{executeAmount})
+			peekWallOrder.SellCoins = peekWallOrder.SellCoins.Minus(executeAmount)
 
 			// send all the coins in the taker's order to the maker,
 			// remove the taker's order as it's been completely fulfilled,
 			// and return with consumed as true, as the entire incoming order has been consumed
-			k.coinKeeper.AddCoins(ctx, peekWallOrder.owner, sdk.Coins{order.sellCoins})
-			order.sellCoins = order.sellCoins.Minus(order.sellCoins)
-			k.RemoveOrder(ctx, order.orderID)
+			k.coinKeeper.AddCoins(ctx, peekWallOrder.Owner, sdk.Coins{order.SellCoins})
+			order.SellCoins = order.SellCoins.Minus(order.SellCoins)
+			k.RemoveOrder(ctx, order.OrderID)
 			return order, true
 		}
 	}
@@ -139,7 +140,7 @@ func (k Keeper) ExecuteOrderAgainstOrderWall(ctx sdk.Context, order Order) (rema
 	// overlapping price orders
 
 	// Set the decreased coins left in state
-	k.DecreaseOrderBidAmount(ctx, order.orderID, order.sellCoins)
+	k.DecreaseOrderBidAmount(ctx, order.OrderID, order.SellCoins)
 	// return that the order has not been completely consumed
 	return order, false
 }

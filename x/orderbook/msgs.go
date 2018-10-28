@@ -11,15 +11,15 @@ import (
 // Msg for creating a new order
 // Price must be in units of BuyDenom/SellDenom
 type MsgMakeOrder struct {
-	MakerAddr      sdk.AccAddress
+	OwnerAddr      sdk.AccAddress
 	SellCoins      sdk.Coin
 	Price          Price
 	ExpirationTime time.Time
 }
 
-func NewMsgMakeOrder(makerAddr sdk.AccAddress, sellCoins sdk.Coin, price Price, expirationTime time.Time) MsgMakeOrder {
+func NewMsgMakeOrder(ownerAddr sdk.AccAddress, sellCoins sdk.Coin, price Price, expirationTime time.Time) MsgMakeOrder {
 	return MsgMakeOrder{
-		MakerAddr:      makerAddr,
+		OwnerAddr:      ownerAddr,
 		SellCoins:      sellCoins,
 		Price:          price,
 		ExpirationTime: expirationTime,
@@ -32,29 +32,29 @@ func (msg MsgMakeOrder) Type() string  { return "add_order" }
 
 // Implements Msg.
 func (msg MsgMakeOrder) ValidateBasic() sdk.Error {
-	if msg.MakerAddr.Empty() {
-		return sdk.ErrInvalidAddress(msg.MakerAddr.String())
+	if msg.OwnerAddr.Empty() {
+		return sdk.ErrInvalidAddress(msg.OwnerAddr.String())
 	}
 
 	if !msg.SellCoins.IsPositive() {
 		return sdk.ErrInvalidCoins(msg.SellCoins.String())
 	}
 
-	if len(msg.Price.numeratorDenom) == 0 {
-		return sdk.ErrInvalidCoins(msg.Price.numeratorDenom)
+	if len(msg.Price.NumeratorDenom) == 0 {
+		return sdk.ErrInvalidCoins(msg.Price.NumeratorDenom)
 	}
 
-	if len(msg.Price.denomenatorDenom) == 0 {
-		return sdk.ErrInvalidCoins(msg.Price.denomenatorDenom)
+	if len(msg.Price.DenomenatorDenom) == 0 {
+		return sdk.ErrInvalidCoins(msg.Price.DenomenatorDenom)
 	}
 
 	// Price must be in units of BuyDenom/SellDenom
-	if msg.SellCoins.Denom != msg.Price.denomenatorDenom {
+	if msg.SellCoins.Denom != msg.Price.DenomenatorDenom {
 		return ErrInvalidPriceFormat(DefaultCodespace, msg.Price)
 	}
 
-	if ValidSortableDec(msg.Price.ratio) {
-		return ErrInvalidPriceRange(DefaultCodespace, msg.Price.ratio)
+	if ValidSortableDec(msg.Price.Ratio) {
+		return ErrInvalidPriceRange(DefaultCodespace, msg.Price.Ratio)
 	}
 
 	return nil
@@ -71,17 +71,17 @@ func (msg MsgMakeOrder) GetSignBytes() []byte {
 
 // Implements Msg.
 func (msg MsgMakeOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.MakerAddr}
+	return []sdk.AccAddress{msg.OwnerAddr}
 }
 
 type MsgRemoveOrder struct {
-	MakerAddr sdk.AccAddress
+	OwnerAddr sdk.AccAddress
 	OrderID   int64
 }
 
-func NewMsgRemoveOrder(makerAddr sdk.AccAddress, orderID int64) MsgRemoveOrder {
+func NewMsgRemoveOrder(ownerAddr sdk.AccAddress, orderID int64) MsgRemoveOrder {
 	return MsgRemoveOrder{
-		MakerAddr: makerAddr,
+		OwnerAddr: ownerAddr,
 		OrderID:   orderID,
 	}
 }
@@ -92,8 +92,8 @@ func (msg MsgRemoveOrder) Type() string  { return "remove_order" }
 
 // Implements Msg.
 func (msg MsgRemoveOrder) ValidateBasic() sdk.Error {
-	if msg.MakerAddr.Empty() {
-		return sdk.ErrInvalidAddress(msg.MakerAddr.String())
+	if msg.OwnerAddr.Empty() {
+		return sdk.ErrInvalidAddress(msg.OwnerAddr.String())
 	}
 
 	if msg.OrderID < 0 {
@@ -114,5 +114,5 @@ func (msg MsgRemoveOrder) GetSignBytes() []byte {
 
 // Implements Msg.
 func (msg MsgRemoveOrder) GetSigners() []sdk.AccAddress {
-	return []sdk.AccAddress{msg.MakerAddr}
+	return []sdk.AccAddress{msg.OwnerAddr}
 }

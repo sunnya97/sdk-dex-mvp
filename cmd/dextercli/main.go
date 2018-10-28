@@ -12,15 +12,14 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/rpc"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 
-	app "github.com/sunnya97/sdk-nameservice-example"
+	app "github.com/sunnya97/sdk-dex-mvp"
 
 	authcmd "github.com/cosmos/cosmos-sdk/x/auth/client/cli"
+	orderbookcmd "github.com/sunnya97/sdk-dex-mvp/x/orderbook/cli"
 )
 
 const storeAcc = "acc"
-const storeNSnames = "ns_names"
-const storeNSowners = "ns_owners"
-const storeNSprices = "ns_prices"
+const storeNSnames = "orderbook"
 
 var (
 	rootCmd = &cobra.Command{
@@ -51,6 +50,8 @@ func main() {
 	queryCmd.AddCommand(client.LineBreak)
 	queryCmd.AddCommand(client.GetCommands(
 		authcmd.GetAccountCmd(storeAcc, cdc, authcmd.GetAccountDecoder(cdc)),
+		orderbookcmd.GetCmdGetOrder("orderbook", cdc),
+		orderbookcmd.GetCmdGetOrderwall("orderbook", cdc),
 	)...)
 
 	txCmd := &cobra.Command{
@@ -59,7 +60,8 @@ func main() {
 	}
 
 	txCmd.AddCommand(client.PostCommands(
-	// add tx commands here
+		orderbookcmd.GetCmdMakeOrder(cdc),
+		orderbookcmd.GetCmdRemoveOrder(cdc),
 	)...)
 
 	rootCmd.AddCommand(
@@ -72,7 +74,7 @@ func main() {
 		keys.Commands(),
 	)
 
-	executor := cli.PrepareMainCmd(rootCmd, "NS", DefaultCLIHome)
+	executor := cli.PrepareMainCmd(rootCmd, "DEX", DefaultCLIHome)
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
