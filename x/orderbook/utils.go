@@ -32,12 +32,12 @@ func SDKDecReciprocal(dec sdk.Dec) sdk.Dec {
 	return sdk.OneDec().Quo(dec)
 }
 
-var minDec, _ = sdk.NewDecFromStr("0.0000000001")
-var maxDec, _ = sdk.NewDecFromStr("1000000000")
+var maxDec, _ = sdk.NewDecFromStr("10000000000")
 
 // Ensures that an sdk.Dec is within the sortable bounds
+// sdk.Dec can't have precision of less that 10^-10
 func ValidSortableDec(dec sdk.Dec) bool {
-	return dec.GTE(minDec) && dec.LTE(maxDec)
+	return dec.LTE(maxDec)
 }
 
 // Returns a byte slice representation of an sdk.Dec that can be sorted.
