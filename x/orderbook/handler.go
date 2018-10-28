@@ -24,14 +24,11 @@ func NewHandler(keeper Keeper) sdk.Handler {
 
 // Handle MsgMakeOrder
 func handleMsgMakeOrder(ctx sdk.Context, keeper Keeper, msg MsgMakeOrder) sdk.Result {
-	price := NewPrice(msg.Price, msg.BuyDenom, msg.SellCoins.Denom)
-
 	order := Order{
-		orderId:        keeper.GetNextOrderID(ctx),
+		orderID:        keeper.GetNextOrderID(ctx),
 		owner:          msg.MakerAddr,
 		sellCoins:      msg.SellCoins,
-		buyDenom:       msg.BuyDenom,
-		price:          price,
+		price:          msg.Price,
 		expirationTime: msg.ExpirationTime,
 	}
 

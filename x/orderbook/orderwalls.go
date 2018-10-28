@@ -1,21 +1,17 @@
 package orderbook
 
 import (
-	"fmt"
-
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 var orderwallPrefix = []byte("orderwalls")
 
-func SortableSDKDecBytes(dec sdk.Dec) []byte {
-	return []byte(fmt.Sprintf("%020s", dec))
-}
-
+// returns a prefix for storing all orders in the orderwall of a specific DenomPair
 func OrderwallPrefix(pair DenomPair) []byte {
 	return AppendWithSeperator(orderwallPrefix, []byte(pair.String()))
 }
 
+// Returns the key for getting an orderID in an orderWall
 func OrderwallOrderKey(pair DenomPair, price Price, orderID int64) []byte {
 	return AppendWithSeperator(AppendWithSeperator(OrderwallPrefix(pair), SortableSDKDecBytes(price.ratio)), Int64ToSortableBytes(orderID))
 }
@@ -62,11 +58,11 @@ func (k Keeper) PopOrderwallOrder(ctx sdk.Context, pair DenomPair) (order Order,
 // Insert an orderID into the appropriate timeslice in the expiration queue
 func (k Keeper) InsertOrderwallOrder(ctx sdk.Context, order Order) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(OrderwallOrderKey(order.Pair(), order.price, order.orderId), k.cdc.MustMarshalBinary(order))
+	store.Set(OrderwallOrderKey(order.Pair(), order.price, order.orderID), k.cdc.MustMarshalBinary(order))
 }
 
 // Insert an orderID into the appropriate timeslice in the expiration queue
 func (k Keeper) DeleteOrderwallOrder(ctx sdk.Context, order Order) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(OrderwallOrderKey(order.Pair(), order.price, order.orderId), nil)
+	store.Set(OrderwallOrderKey(order.Pair(), order.price, order.orderID), nil)
 }

@@ -3,6 +3,7 @@ package orderbook
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -19,12 +20,34 @@ func SplitKeyAlongSeperator(fullKey []byte) [][]byte {
 	return bytes.Split(fullKey, keySeperator)
 }
 
+// marshals int64 to a bigendian byte slice so it can be sorted
 func Int64ToSortableBytes(i int64) []byte {
 	b := make([]byte, 8)
 	binary.BigEndian.PutUint64(b, uint64(i))
 	return b
 }
 
+// returns the reciprocal of an sdk.Dec
 func SDKDecReciprocal(dec sdk.Dec) sdk.Dec {
 	return sdk.OneDec().Quo(dec)
+}
+
+var minDec, _ = sdk.NewDecFromStr("0.0000000001")
+var maxDec, _ = sdk.NewDecFromStr("1000000000")
+
+// Ensures that an sdk.Dec is within the sortable bounds
+func ValidSortableDec(dec sdk.Dec) bool {
+	return dec.GTE(minDec) && dec.LTE(maxDec)
+}
+
+// Returns a byte slice representation of an sdk.Dec that can be sorted.
+// Left and right pads with 0s so there are 10 digits to left and right of decimal point
+// For this reason, there is a maximum and minimum value for this
+// Prices need to be marshalled using this, and so prices must be within the bounds
+// enforced by ValidSortableDec
+func SortableSDKDecBytes(dec sdk.Dec) []byte {
+	if !ValidSortableDec(dec) {
+		panic("dec must be within bounds")
+	}
+	return []byte(fmt.Sprintf("%020s", dec))
 }

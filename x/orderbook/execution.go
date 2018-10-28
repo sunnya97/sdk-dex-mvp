@@ -2,18 +2,26 @@ package orderbook
 
 import sdk "github.com/cosmos/cosmos-sdk/types"
 
+// Executes an order against an orderwall until either the order is fully consumed, there are no more order left in the wall,
+// or there is a spread (the prices don't overlap)
 func (k Keeper) ExecuteOrderAgainstOrderWall(ctx sdk.Context, order Order) (remainingOrder Order, consumed bool) {
 	opposingPair := order.Pair().ReversePair()
 
+	// while the order hasn't been fully consumed
 	for order.sellCoins.IsPositive() {
 
+		// get the first order in the opposing wall
+		// if there are no more orders in the opposing wall, end by placing the remaining incoming order in its own wall
 		peekWallOrder, found := k.PeekOrderwallOrder(ctx, opposingPair)
 		if !found {
+			k.DecreaseOrderBidAmount(ctx, order.orderID, order.sellCoins)
 			return order, false
 		}
 
+		// get the asking price of peekedOrder
 		askPrice := peekWallOrder.price.Reciprocal()
 
+		// If the asking price is greater than the incoming order is willing to pay, break out of the loop and end
 		if order.price.LT(askPrice) {
 			break
 		}
@@ -34,7 +42,7 @@ func (k Keeper) ExecuteOrderAgainstOrderWall(ctx sdk.Context, order Order) (rema
 			// Send the full sellCoins of the peekedOrder to the incoming order's owner (the taker)
 			// and remove the peeked order from state
 			k.coinKeeper.AddCoins(ctx, order.owner, sdk.Coins{peekWallOrder.sellCoins})
-			k.RemoveOrder(ctx, peekWallOrder.orderId)
+			k.RemoveOrder(ctx, peekWallOrder.orderID)
 		} else {
 			// scenario that peekedOrder is larger than the incoming taker order
 
@@ -50,7 +58,7 @@ func (k Keeper) ExecuteOrderAgainstOrderWall(ctx sdk.Context, order Order) (rema
 			// and return with consumed as true, as the entire incoming order has been consumed
 			k.coinKeeper.AddCoins(ctx, peekWallOrder.owner, sdk.Coins{order.sellCoins})
 			order.sellCoins = order.sellCoins.Minus(order.sellCoins)
-			k.RemoveOrder(ctx, order.orderId)
+			k.RemoveOrder(ctx, order.orderID)
 			return order, true
 		}
 	}
@@ -59,7 +67,7 @@ func (k Keeper) ExecuteOrderAgainstOrderWall(ctx sdk.Context, order Order) (rema
 	// overlapping price orders
 
 	// Set the decreased coins left in state
-	k.DecreaseOrderBidAmount(ctx, order.orderId, order.sellCoins)
+	k.DecreaseOrderBidAmount(ctx, order.orderID, order.sellCoins)
 	// return that the order has not been completely consumed
 	return order, false
 }

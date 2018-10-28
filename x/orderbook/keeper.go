@@ -31,8 +31,8 @@ func NewKeeper(coinKeeper bank.Keeper, storeKey sdk.StoreKey, cdc *codec.Codec) 
 
 // AddNewOrder - Adds a new order into the proper orderbook
 func (k Keeper) AddNewOrder(ctx sdk.Context, order Order) sdk.Error {
-	if !ValidPriceRatio(order.price.ratio) {
-		return ErrInvalidPrice(k.codespace, order.price.ratio)
+	if !ValidSortableDec(order.price.ratio) {
+		return ErrInvalidPriceRange(k.codespace, order.price.ratio)
 	}
 
 	k.SetOrder(ctx, order)
@@ -40,6 +40,7 @@ func (k Keeper) AddNewOrder(ctx sdk.Context, order Order) sdk.Error {
 	return nil
 }
 
+// Updates the amount of SellCoins left in an order
 func (k Keeper) DecreaseOrderBidAmount(ctx sdk.Context, orderID int64, newAmount sdk.Coin) {
 	order, found := k.GetOrder(ctx, orderID)
 	if !found || !order.sellCoins.SameDenomAs(newAmount) || !newAmount.IsNotNegative() {
@@ -55,6 +56,7 @@ func (k Keeper) DecreaseOrderBidAmount(ctx sdk.Context, orderID int64, newAmount
 	k.SetOrder(ctx, order)
 }
 
+// Removes an order from state and from its orderwall
 func (k Keeper) RemoveOrder(ctx sdk.Context, orderID int64) Order {
 	order, found := k.GetOrder(ctx, orderID)
 	if !found {

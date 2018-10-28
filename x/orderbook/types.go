@@ -8,21 +8,17 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
-var minPrice, _ = sdk.NewDecFromStr("0.0000000001")
-var maxPrice, _ = sdk.NewDecFromStr("1000000000")
-
-func ValidPriceRatio(ratio sdk.Dec) bool {
-	return ratio.GTE(minPrice) && ratio.LTE(maxPrice)
-}
-
+// Price object that has an sdk.Dec for the price along with units
+// Supports comparision operators, that panic if not used to compare prices of the same units
 type Price struct {
 	ratio            sdk.Dec
 	numeratorDenom   string
 	denomenatorDenom string
 }
 
+// Checks the make sure that the ratio sdk.Dec is within sortable bounds
 func NewPrice(ratio sdk.Dec, numeratorDenom, denomenatorDenom string) (price Price) {
-	if !ValidPriceRatio(ratio) {
+	if !ValidSortableDec(ratio) {
 		return price
 	}
 	return Price{
@@ -32,6 +28,7 @@ func NewPrice(ratio sdk.Dec, numeratorDenom, denomenatorDenom string) (price Pri
 	}
 }
 
+// Returns the reciprocal price (1/ratio) as well as flips the denoms
 func (p Price) Reciprocal() Price {
 	return Price{
 		ratio:            SDKDecReciprocal(p.ratio),
@@ -40,6 +37,7 @@ func (p Price) Reciprocal() Price {
 	}
 }
 
+// nolint
 func (p Price) Equal(p2 Price) bool {
 	if p.numeratorDenom != p2.numeratorDenom || p.denomenatorDenom != p2.denomenatorDenom {
 		panic("cannot compare prices of different units")
@@ -47,6 +45,7 @@ func (p Price) Equal(p2 Price) bool {
 	return p.ratio.Equal(p2.ratio)
 }
 
+// nolint
 func (p Price) LT(p2 Price) bool {
 	if p.numeratorDenom != p2.numeratorDenom || p.denomenatorDenom != p2.denomenatorDenom {
 		panic("cannot compare prices of different units")
@@ -54,6 +53,7 @@ func (p Price) LT(p2 Price) bool {
 	return p.ratio.LT(p2.ratio)
 }
 
+// nolint
 func (p Price) GT(p2 Price) bool {
 	if p.numeratorDenom != p2.numeratorDenom || p.denomenatorDenom != p2.denomenatorDenom {
 		panic("cannot compare prices of different units")
@@ -61,6 +61,7 @@ func (p Price) GT(p2 Price) bool {
 	return p.ratio.GT(p2.ratio)
 }
 
+// nolint
 func (p Price) LTE(p2 Price) bool {
 	if p.numeratorDenom != p2.numeratorDenom || p.denomenatorDenom != p2.denomenatorDenom {
 		panic("cannot compare prices of different units")
@@ -68,6 +69,7 @@ func (p Price) LTE(p2 Price) bool {
 	return p.ratio.LTE(p2.ratio)
 }
 
+// nolint
 func (p Price) GTE(p2 Price) bool {
 	if p.numeratorDenom != p2.numeratorDenom || p.denomenatorDenom != p2.denomenatorDenom {
 		panic("cannot compare prices of different units")
@@ -75,6 +77,7 @@ func (p Price) GTE(p2 Price) bool {
 	return p.ratio.GTE(p2.ratio)
 }
 
+// Returns the result of converting an sdk.Coin using a conversion ratio price
 func MulCoinsPrice(coins sdk.Coin, price Price) (sdk.Coin, error) {
 	if coins.Denom != price.denomenatorDenom {
 		return sdk.Coin{}, errors.New("Price and Coins incompatible")
@@ -85,8 +88,11 @@ func MulCoinsPrice(coins sdk.Coin, price Price) (sdk.Coin, error) {
 	}, nil
 }
 
+// ------------------------------------------------------------
+
+// Order
 type Order struct {
-	orderId        int64
+	orderID        int64
 	owner          sdk.AccAddress
 	sellCoins      sdk.Coin
 	buyDenom       string
@@ -94,6 +100,7 @@ type Order struct {
 	expirationTime time.Time
 }
 
+// Returns the DenomPair of (BuyDenom, SellDenom).  Used for assigning order to the proper orderbook
 func (o Order) Pair() DenomPair {
 	return DenomPair{
 		SellDenom: o.sellCoins.Denom,
@@ -101,20 +108,7 @@ func (o Order) Pair() DenomPair {
 	}
 }
 
-func (o Order) BidAmountAtAskPrice(askedPrice sdk.Dec) sdk.Coin {
-	return sdk.Coin{
-		Denom:  o.buyDenom,
-		Amount: sdk.NewDecFromInt(o.sellCoins.Amount).Mul(askedPrice).RoundInt(),
-	}
-}
-
-func (o Order) MatchOffer(offerAmount sdk.Coin) sdk.Coin {
-	return sdk.Coin{
-		Denom:  o.sellCoins.Denom,
-		Amount: o.price.ratio.MulInt(offerAmount.Amount).RoundInt(),
-	}
-}
-
+// DenomPair is a tuple of two denoms
 type DenomPair struct {
 	SellDenom string
 	BuyDenom  string
@@ -127,10 +121,12 @@ func NewDenomPair(sellDenom, buyDenom string) DenomPair {
 	}
 }
 
+// returns a string form of Denom Pair, is just the two denom strings, separated by " - " delimiter
 func (denomPair DenomPair) String() string {
 	return fmt.Sprintf("%s - %s", denomPair.SellDenom, denomPair.BuyDenom)
 }
 
+// Returns the inverse DenomPair with BuyDenom and SellDenom switched
 func (denomPair DenomPair) ReversePair() DenomPair {
 	return DenomPair{
 		SellDenom: denomPair.BuyDenom,

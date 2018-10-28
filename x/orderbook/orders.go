@@ -26,7 +26,7 @@ func (k Keeper) GetOrder(ctx sdk.Context, orderID int64) (order Order, found boo
 // Sets an Order int the Store
 func (k Keeper) SetOrder(ctx sdk.Context, order Order) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(OrderKey(order.orderId), k.cdc.MustMarshalBinary(order))
+	store.Set(OrderKey(order.orderID), k.cdc.MustMarshalBinary(order))
 }
 
 // Sets an Order int the Store

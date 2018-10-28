@@ -8,19 +8,19 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
+// Msg for creating a new order
+// Price must be in units of BuyDenom/SellDenom
 type MsgMakeOrder struct {
 	MakerAddr      sdk.AccAddress
 	SellCoins      sdk.Coin
-	BuyDenom       string
-	Price          sdk.Dec
+	Price          Price
 	ExpirationTime time.Time
 }
 
-func NewMsgMakeOrder(makerAddr sdk.AccAddress, sellCoins sdk.Coin, buyDenom string, price sdk.Dec, expirationTime time.Time) MsgMakeOrder {
+func NewMsgMakeOrder(makerAddr sdk.AccAddress, sellCoins sdk.Coin, price Price, expirationTime time.Time) MsgMakeOrder {
 	return MsgMakeOrder{
 		MakerAddr:      makerAddr,
 		SellCoins:      sellCoins,
-		BuyDenom:       buyDenom,
 		Price:          price,
 		ExpirationTime: expirationTime,
 	}
@@ -40,12 +40,21 @@ func (msg MsgMakeOrder) ValidateBasic() sdk.Error {
 		return sdk.ErrInvalidCoins(msg.SellCoins.String())
 	}
 
-	if len(msg.BuyDenom) == 0 {
-		return sdk.ErrInvalidCoins(msg.BuyDenom)
+	if len(msg.Price.numeratorDenom) == 0 {
+		return sdk.ErrInvalidCoins(msg.Price.numeratorDenom)
 	}
 
-	if ValidPriceRatio(msg.Price) {
-		return sdk.ErrInternal(msg.Price.String())
+	if len(msg.Price.denomenatorDenom) == 0 {
+		return sdk.ErrInvalidCoins(msg.Price.denomenatorDenom)
+	}
+
+	// Price must be in units of BuyDenom/SellDenom
+	if msg.SellCoins.Denom != msg.Price.denomenatorDenom {
+		return ErrInvalidPriceFormat(DefaultCodespace, msg.Price)
+	}
+
+	if ValidSortableDec(msg.Price.ratio) {
+		return ErrInvalidPriceRange(DefaultCodespace, msg.Price.ratio)
 	}
 
 	return nil
