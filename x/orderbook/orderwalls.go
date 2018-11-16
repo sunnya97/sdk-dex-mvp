@@ -30,7 +30,7 @@ func (k Keeper) PeekOrderwallOrder(ctx sdk.Context, pair DenomPair) (order Order
 	}
 
 	var orderID int64
-	k.cdc.MustUnmarshalBinary(orderWall.Value(), &orderID)
+	k.cdc.MustUnmarshalBinaryBare(orderWall.Value(), &orderID)
 
 	orderWall.Close()
 
@@ -45,7 +45,7 @@ func (k Keeper) PopOrderwallOrder(ctx sdk.Context, pair DenomPair) (order Order,
 	}
 
 	var orderID int64
-	k.cdc.MustUnmarshalBinary(orderWall.Value(), &orderID)
+	k.cdc.MustUnmarshalBinaryBare(orderWall.Value(), &orderID)
 
 	orderWall.Close()
 
@@ -58,7 +58,7 @@ func (k Keeper) PopOrderwallOrder(ctx sdk.Context, pair DenomPair) (order Order,
 // Insert an orderID into the appropriate timeslice in the expiration queue
 func (k Keeper) InsertOrderwallOrder(ctx sdk.Context, order Order) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(OrderwallOrderKey(order.Pair(), order.Price, order.OrderID), k.cdc.MustMarshalBinary(order.OrderID))
+	store.Set(OrderwallOrderKey(order.Pair(), order.Price, order.OrderID), k.cdc.MustMarshalBinaryBare(order.OrderID))
 }
 
 // Insert an orderID into the appropriate timeslice in the expiration queue

@@ -53,7 +53,7 @@ func (msg MsgMakeOrder) ValidateBasic() sdk.Error {
 		return ErrInvalidPriceFormat(DefaultCodespace, msg.Price)
 	}
 
-	if ValidSortableDec(msg.Price.Ratio) {
+	if !ValidSortableDec(msg.Price.Ratio) {
 		return ErrInvalidPriceRange(DefaultCodespace, msg.Price.Ratio)
 	}
 

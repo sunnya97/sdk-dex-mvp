@@ -16,7 +16,7 @@ func (k Keeper) GetOrder(ctx sdk.Context, orderID int64) (order Order, found boo
 	if bz == nil {
 		return order, false
 	}
-	err := k.cdc.UnmarshalBinary(bz, &order)
+	err := k.cdc.UnmarshalBinaryBare(bz, &order)
 	if err != nil {
 		return order, false
 	}
@@ -26,7 +26,7 @@ func (k Keeper) GetOrder(ctx sdk.Context, orderID int64) (order Order, found boo
 // Sets an Order int the Store
 func (k Keeper) SetOrder(ctx sdk.Context, order Order) {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(OrderKey(order.OrderID), k.cdc.MustMarshalBinary(order))
+	store.Set(OrderKey(order.OrderID), k.cdc.MustMarshalBinaryBare(order))
 }
 
 // Sets an Order int the Store
@@ -43,14 +43,14 @@ func (k Keeper) GetLastOrderID(ctx sdk.Context) (lastOrderID int64) {
 		k.SetLastOrderID(ctx, 0)
 		return 0
 	}
-	k.cdc.UnmarshalBinary(bz, &lastOrderID)
+	k.cdc.UnmarshalBinaryBare(bz, &lastOrderID)
 	return lastOrderID
 }
 
 // Sets the last orderID that was assigned
 func (k Keeper) SetLastOrderID(ctx sdk.Context, orderID int64) {
 	store := ctx.KVStore(k.storeKey)
-	bz := k.cdc.MustMarshalBinary(orderID)
+	bz := k.cdc.MustMarshalBinaryBare(orderID)
 	store.Set(lastOrderIDKey, bz)
 }
 

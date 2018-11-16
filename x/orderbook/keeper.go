@@ -31,20 +31,20 @@ func NewKeeper(coinKeeper bank.Keeper, storeKey sdk.StoreKey, cdc *codec.Codec, 
 }
 
 // AddNewOrder - Adds a new order into the proper orderbook
-func (k Keeper) AddNewOrder(ctx sdk.Context, order Order) sdk.Error {
+func (k Keeper) AddNewOrder(ctx sdk.Context, order Order) (consumed bool, err sdk.Error) {
 	if !ValidSortableDec(order.Price.Ratio) {
-		return ErrInvalidPriceRange(k.codespace, order.Price.Ratio)
+		return false, ErrInvalidPriceRange(k.codespace, order.Price.Ratio)
 	}
 
 	// First run order against opposing order wall
-	order, consumed := k.ExecuteOrderAgainstOrderWall(ctx, order)
+	order, consumed = k.ExecuteOrderAgainstOrderWall(ctx, order)
 
 	// if the order hasn't been fully executed, add it to its own order wall
 	if !consumed {
 		k.SetOrder(ctx, order)
 		k.InsertOrderwallOrder(ctx, order)
 	}
-	return nil
+	return consumed, nil
 }
 
 // Updates the amount of SellCoins left in an order

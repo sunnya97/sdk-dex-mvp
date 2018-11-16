@@ -22,11 +22,13 @@ type DexterApp struct {
 	*bam.BaseApp
 	cdc *codec.Codec
 
-	keyMain      *sdk.KVStoreKey
-	keyAccount   *sdk.KVStoreKey
-	keyOrderbook *sdk.KVStoreKey
+	keyMain          *sdk.KVStoreKey
+	keyAccount       *sdk.KVStoreKey
+	keyOrderbook     *sdk.KVStoreKey
+	keyFeeCollection *sdk.KVStoreKey
 
 	accountKeeper   auth.AccountKeeper
+	feeKeeper       auth.FeeCollectionKeeper
 	bankKeeper      bank.Keeper
 	orderbookKeeper orderbook.Keeper
 
@@ -52,6 +54,8 @@ func NewDexterApp(logger log.Logger, db dbm.DB) *DexterApp {
 		auth.ProtoBaseAccount,
 	)
 
+	app.feeKeeper = auth.NewFeeCollectionKeeper(cdc, app.keyFeeCollection)
+
 	app.bankKeeper = bank.NewBaseKeeper(app.accountKeeper)
 
 	app.orderbookKeeper = orderbook.NewKeeper(
@@ -60,6 +64,8 @@ func NewDexterApp(logger log.Logger, db dbm.DB) *DexterApp {
 		app.cdc,
 		app.RegisterCodespace(orderbook.DefaultCodespace),
 	)
+
+	app.SetAnteHandler(auth.NewAnteHandler(app.accountKeeper, app.feeKeeper))
 
 	app.Router().
 		AddRoute("orderbook", orderbook.NewHandler(app.orderbookKeeper)).

@@ -24,18 +24,29 @@ func NewHandler(keeper Keeper) sdk.Handler {
 
 // Handle MsgMakeOrder
 func handleMsgMakeOrder(ctx sdk.Context, keeper Keeper, msg MsgMakeOrder) sdk.Result {
+	orderID := keeper.GetNextOrderID(ctx)
+
 	order := Order{
-		OrderID:        keeper.GetNextOrderID(ctx),
+		OrderID:        orderID,
 		Owner:          msg.OwnerAddr,
 		SellCoins:      msg.SellCoins,
 		Price:          msg.Price,
 		ExpirationTime: msg.ExpirationTime,
 	}
 
-	keeper.coinKeeper.SubtractCoins(ctx, order.Owner, sdk.Coins{order.SellCoins})
-	keeper.AddNewOrder(ctx, order)
+	_, _, err := keeper.coinKeeper.SubtractCoins(ctx, order.Owner, sdk.Coins{order.SellCoins})
+	if err != nil {
+		return err.Result()
+	}
 
-	return sdk.Result{}
+	consumed, err := keeper.AddNewOrder(ctx, order)
+	if err != nil {
+		return err.Result()
+	}
+
+	return sdk.Result{
+		Data: keeper.cdc.MustMarshalBinaryBare(consumed),
+	}
 }
 
 // Handle MsgRemoveOrder

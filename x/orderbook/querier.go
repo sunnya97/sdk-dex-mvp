@@ -74,7 +74,7 @@ func queryOrderwall(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 
 	for ; orderwallIterator.Valid(); orderwallIterator.Next() {
 		var orderID int64
-		keeper.cdc.MustUnmarshalBinary(orderwallIterator.Value(), &orderID)
+		keeper.cdc.MustUnmarshalBinaryBare(orderwallIterator.Value(), &orderID)
 
 		order, found := keeper.GetOrder(ctx, orderID)
 		if found {

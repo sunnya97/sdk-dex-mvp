@@ -91,7 +91,7 @@ func InitCmd(ctx *server.Context, cdc *codec.Codec, appInit server.AppInit) *cob
 				return err
 			}
 
-			appState, err := appInit.AppGenState(cdc, []json.RawMessage{genTx})
+			appState, err := appInit.AppGenState(cdc, tmtypes.GenesisDoc{}, []json.RawMessage{genTx})
 			if err != nil {
 				return err
 			}
